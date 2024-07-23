@@ -23,6 +23,12 @@ import re
 class Node(object):
     """ Abstact class for every element in parser """
 
+    def parent(self):
+        if hasattr(self, 'myparent'):
+            return self.myparent
+        else:
+            return None
+        
     def children(self):
         pass
 
@@ -1095,8 +1101,10 @@ class Function(Node):
 class FunctionCall(Node):
     attr_names = ()
 
-    def __init__(self, name, args, lineno=0):
+    def __init__(self, name, args, lineno=0,end_lineno=0):
         self.lineno = lineno
+        self.end_lineno = end_lineno
+        self.end_lineno = lineno
         self.name = name
         self.args = args
 
@@ -1117,6 +1125,7 @@ class Task(Node):
 
     def __init__(self, name, statement, lineno=0):
         self.lineno = lineno
+        self.end_lineno = lineno
         self.name = name
         self.statement = statement
 

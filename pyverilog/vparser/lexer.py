@@ -79,6 +79,7 @@ class VerilogLexer(object):
 
     tokens = keywords + operators + (
         'ID',
+        'TASKNAME',
         'AT', 'COMMA', 'COLON', 'SEMICOLON', 'DOT',
         'PLUSCOLON', 'MINUSCOLON',
         'FLOATNUMBER', 'STRING_LITERAL',
@@ -202,8 +203,9 @@ class VerilogLexer(object):
     string_char = r"""([^"\\\n]|""" + escape_sequence + ')'
     string_literal = '"' + string_char + '*"'
 
-    identifier = r"""(([a-zA-Z_])([a-zA-Z_0-9$])*)|((\\\S)(\S)*)"""
-
+    #identifier = r"""(([a-zA-Z_])([a-zA-Z_0-9$])*)|((\\\S)(\S)*)"""
+    identifier = r"""[_a-zA-Z][_a-zA-Z0-9]{0,30}"""
+    
     @TOKEN(string_literal)
     def t_STRING_LITERAL(self, t):
         return t
@@ -247,6 +249,12 @@ class VerilogLexer(object):
     @TOKEN(identifier)
     def t_ID(self, t):
         t.type = self.reserved.get(t.value, 'ID')
+        return t
+
+    taskname = r"""[_a-zA-Z][_a-zA-Z0-9]{0,30}[(]{1}"""
+    @TOKEN(taskname)
+    def t_TASKNAME(self, t):
+        t.type = self.reserved.get(t.value, 'TASKNAME')
         return t
 
     def t_NEWLINE(self, t):

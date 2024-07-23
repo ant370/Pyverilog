@@ -481,6 +481,8 @@ class VerilogParser(object):
         p[0] = (p[1],)
         p.set_lineno(0, p.lineno(1))
 
+    
+
     def p_items_empty(self, p):
         'items : empty'
         p[0] = ()
@@ -490,6 +492,12 @@ class VerilogParser(object):
         | generate
         """
         p[0] = p[1]
+        p.set_lineno(0, p.lineno(1))
+
+    def p_standard_item_begin(self, p):
+        """standard_item : BEGIN items END 
+        """
+        p[0] = Block(p[2],)
         p.set_lineno(0, p.lineno(1))
 
     def p_standard_item(self, p):
@@ -505,7 +513,7 @@ class VerilogParser(object):
         | always_ff
         | always_comb
         | always_latch
-        | initial
+        | initial 
         | instance
         | function
         | task
@@ -550,23 +558,7 @@ class VerilogParser(object):
     def typecheck_decl(self, sigtypes, dimensions=None):
         if ('supply0' in sigtypes or 'supply1' in sigtypes) and \
            dimensions is not None:
-            raise ParseError("SyntaxError")
-        if len(sigtypes) == 1 and 'signed' in sigtypes:
-            raise ParseError("Syntax Error")
-        if 'input' in sigtypes and 'output' in sigtypes:
-            raise ParseError("Syntax Error")
-        if 'inout' in sigtypes and 'output' in sigtypes:
-            raise ParseError("Syntax Error")
-        if 'inout' in sigtypes and 'input' in sigtypes:
-            raise ParseError("Syntax Error")
-        if 'input' in sigtypes and 'reg' in sigtypes:
-            raise ParseError("Syntax Error")
-        if 'inout' in sigtypes and 'reg' in sigtypes:
-            raise ParseError("Syntax Error")
-        if 'input' in sigtypes and 'tri' in sigtypes:
-            raise ParseError("Syntax Error")
-        if 'output' in sigtypes and 'tri' in sigtypes:
-            raise ParseError("Syntax Error")
+            raise ParseError("SyntaxError") 
 
     def p_decl(self, p):
         'decl : sigtypes declnamelist SEMICOLON'
@@ -1425,7 +1417,7 @@ class VerilogParser(object):
         p.set_lineno(0, p.lineno(1))
 
     def p_basic_statement(self, p):
-        """basic_statement : if_statement
+        """basic_statement : if_statement  
         | case_statement
         | casex_statement
         | casez_statement
@@ -1437,10 +1429,11 @@ class VerilogParser(object):
         | forever_statement
         | block
         | namedblock
-        | parallelblock
-        | blocking_substitution
-        | nonblocking_substitution
+        | parallelblock  
+        | nonblocking_substitution 
+        | blocking_substitution 
         | single_statement
+        | assignment
         """
         p[0] = p[1]
         p.set_lineno(0, p.lineno(1))
@@ -1452,10 +1445,11 @@ class VerilogParser(object):
 
     # --------------------------------------------------------------------------
     def p_blocking_substitution(self, p):
-        'blocking_substitution : delays lvalue EQUALS delays rvalue SEMICOLON'
+        """blocking_substitution : delays lvalue EQUALS delays rvalue SEMICOLON"""
         p[0] = BlockingSubstitution(p[2], p[5], p[1], p[4], lineno=p.lineno(2))
         p.set_lineno(0, p.lineno(2))
         p[0].end_lineno = p.lineno(6)
+ 
 
     def p_blocking_substitution_base(self, p):
         'blocking_substitution_base : delays lvalue EQUALS delays rvalue'
@@ -2052,18 +2046,18 @@ class VerilogParser(object):
 
     # --------------------------------------------------------------------------
     def p_systemcall_noargs(self, p):
-        'systemcall : DOLLER ID'
-        p[0] = SystemCall(p[2], (), lineno=p.lineno(1))
+        'systemcall : delays DOLLER ID'
+        p[0] = SystemCall(p[3], (), lineno=p.lineno(1))
         p.set_lineno(0, p.lineno(1))
 
     def p_systemcall(self, p):
-        'systemcall : DOLLER ID LPAREN sysargs RPAREN'
-        p[0] = SystemCall(p[2], p[4], lineno=p.lineno(1))
+        'systemcall : delays DOLLER ID LPAREN sysargs RPAREN'
+        p[0] = SystemCall(p[3], p[5], lineno=p.lineno(1))
         p.set_lineno(0, p.lineno(1))
 
     def p_systemcall_signed(self, p):  # for $signed system task
-        'systemcall : DOLLER SIGNED LPAREN sysargs RPAREN'
-        p[0] = SystemCall(p[2], p[4], lineno=p.lineno(1))
+        'systemcall : delays DOLLER SIGNED LPAREN sysargs RPAREN'
+        p[0] = SystemCall(p[3], p[5], lineno=p.lineno(1))
         p.set_lineno(0, p.lineno(1))
 
     def p_sysargs(self, p):
@@ -2087,10 +2081,28 @@ class VerilogParser(object):
 
     # --------------------------------------------------------------------------
     def p_function(self, p):
-        'function : FUNCTION width ID SEMICOLON function_statement ENDFUNCTION'
+        'function : FUNCTION  width  ID SEMICOLON function_statement ENDFUNCTION'
         p[0] = Function(p[3], p[2], p[5], lineno=p.lineno(1))
         p.set_lineno(0, p.lineno(1))
         p[0].end_lineno = p.lineno(6)
+
+ 
+    
+    def p_funct_params(self,p):
+        'function_params : portlist'
+  
+    # Portlist
+    def p_function_params(self, p):
+        'function : FUNCTION ID function_params function_calc ENDFUNCTION'
+        p[0] = Function(p[2],
+                        Width(IntConst('0', lineno=p.lineno(1)),
+                              IntConst('0', lineno=p.lineno(1)),
+                              lineno=p.lineno(1)),
+                        (p[4],), lineno=p.lineno(1))
+        p.set_lineno(0, p.lineno(1))
+        p[0].end_lineno = p.lineno(5)
+
+ 
 
     def p_function_nowidth(self, p):
         'function : FUNCTION ID SEMICOLON function_statement ENDFUNCTION'
@@ -2104,11 +2116,11 @@ class VerilogParser(object):
 
     def p_function_integer(self, p):
         'function : FUNCTION INTEGER ID SEMICOLON function_statement ENDFUNCTION'
-        p[0] = Function(p[3],
+        p[0] = Function(p[2],
                         Width(IntConst('31', lineno=p.lineno(1)),
                               IntConst('0', lineno=p.lineno(1)),
                               lineno=p.lineno(1)),
-                        p[5], lineno=p.lineno(1))
+                        p[4], lineno=p.lineno(1))
         p.set_lineno(0, p.lineno(1))
         p[0].end_lineno = p.lineno(6)
 
@@ -2117,10 +2129,14 @@ class VerilogParser(object):
         p[0] = p[1] + (p[2],)
         p.set_lineno(0, p.lineno(1))
 
+ 
+
     def p_funcvardecls(self, p):
         'funcvardecls : funcvardecls funcvardecl'
         p[0] = p[1] + (p[2],)
         p.set_lineno(0, p.lineno(1))
+ 
+
 
     def p_funcvardecls_one(self, p):
         'funcvardecls : funcvardecl'
@@ -2155,7 +2171,7 @@ class VerilogParser(object):
 
     def p_functioncall(self, p):
         'functioncall : identifier LPAREN func_args RPAREN'
-        p[0] = FunctionCall(p[1], p[3], lineno=p.lineno(1))
+        p[0] = FunctionCall(p[1], p[3], lineno=p.lineno(1),end_lineno=p.lineno(1))
         p.set_lineno(0, p.lineno(1))
 
     def p_func_args(self, p):
@@ -2174,7 +2190,12 @@ class VerilogParser(object):
 
     # --------------------------------------------------------------------------
     def p_task(self, p):
-        'task : TASK ID SEMICOLON task_statement ENDTASK'
+        'task : TASK ID SEMICOLON  task_statement ENDTASK'
+        p[0] = Task(p[2], p[4], lineno=p.lineno(1))
+        p.set_lineno(0, p.lineno(1))
+
+    def p_task_params(self, p):
+        'task : TASK ID function_params  task_statement ENDTASK'
         p[0] = Task(p[2], p[4], lineno=p.lineno(1))
         p.set_lineno(0, p.lineno(1))
 
@@ -2204,7 +2225,7 @@ class VerilogParser(object):
         if isinstance(p[1], Decl):
             for r in p[1].list:
                 if (not isinstance(r, Input) and not isinstance(r, Reg) and
-                        not isinstance(r, Integer)):
+                        not isinstance(r, Integer) and not isinstance(r,Output)):
                     raise ParseError("Syntax Error")
         p[0] = p[1]
         p.set_lineno(0, p.lineno(1))
@@ -2262,6 +2283,7 @@ class VerilogParser(object):
             p[2], lineno=p.lineno(1)), lineno=p.lineno(1))
         p.set_lineno(0, p.lineno(1))
         p[0].end_lineno = p.lineno(3)
+ 
 
     def p_single_statement_systemcall(self, p):
         'single_statement : systemcall SEMICOLON'
@@ -2275,29 +2297,36 @@ class VerilogParser(object):
         p.set_lineno(0, p.lineno(1))
         p[0].end_lineno = p.lineno(2)
 
-    # fix me: to support task-call-statement
-    # def p_single_statement_taskcall(self, p):
-    #    'single_statement : functioncall SEMICOLON'
-    #    p[0] = SingleStatement(p[1], lineno=p.lineno(1))
-    #    p.set_lineno(0, p.lineno(1))
+     
 
-    # def p_single_statement_taskcall_empty(self, p):
-    #    'single_statement : taskcall SEMICOLON'
-    #    p[0] = SingleStatement(p[1], lineno=p.lineno(1))
-    #    p.set_lineno(0, p.lineno(1))
+    #fix me: to support task-call-statement
+    def p_single_statement_taskcall(self, p):
+        'single_statement : delays identifier LPAREN func_args RPAREN SEMICOLON'
+        p[0] = FunctionCall(name=p[2], args=p[4], lineno=p.lineno(1))
+        p.end_lineno =p.lineno(1)
+        p.set_lineno(0, p.lineno(1))
+    
 
-    # def p_taskcall_empty(self, p):
-    #    'taskcall : identifier'
-    #    p[0] = FunctionCall(p[1], (), lineno=p.lineno(1))
-    #    p.set_lineno(0, p.lineno(1))
+    #fix me: to support task-call-statement
+    def p_single_statement_taskcall_single(self, p):
+        'single_statement : delays identifier SEMICOLON'
+        p[0] = FunctionCall(name=p[2], args={}, lineno=p.lineno(1))
+        p.end_lineno =p.lineno(1)
+        p.set_lineno(0, p.lineno(1))
+ 
 
+
+    def p_single_statement_vsim_delay(self, p):
+        'single_statement : delays'
+        p[0] = DelayStatement(p[1], 0 )
+        p.set_lineno(0, p.lineno(1)) 
     # --------------------------------------------------------------------------
     def p_empty(self, p):
         'empty : '
         pass
 
     # --------------------------------------------------------------------------
-    def p_error(self, p):
+    def p_error(self, p): 
         self._raise_error(p)
 
     # --------------------------------------------------------------------------
