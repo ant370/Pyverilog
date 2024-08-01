@@ -59,7 +59,9 @@ class VerilogParser(object):
             module=self,
             method="LALR",
             outputdir=outputdir,
-            debug=debug
+            debug=False,
+            optimize=True,
+            check_recursion=False
         )
 
     def _lexer_error_func(self, msg, line, column):
@@ -286,6 +288,12 @@ class VerilogParser(object):
         p[0] = (p[1],)
         p.set_lineno(0, p.lineno(1))
 
+
+    def p_sigtype_integer(self, p):
+        'sigtype : INTEGER'
+        p[0] = p[1]
+        p.set_lineno(0, p.lineno(1))
+
     def p_sigtype_input(self, p):
         'sigtype : INPUT'
         p[0] = p[1]
@@ -405,8 +413,8 @@ class VerilogParser(object):
             raise ParseError("Syntax Error")
         if 'inout' in sigtypes and 'input' in sigtypes:
             raise ParseError("Syntax Error")
-        if 'input' in sigtypes and 'reg' in sigtypes:
-            raise ParseError("Syntax Error")
+        # if 'input' in sigtypes and 'reg' in sigtypes:
+        #     raise ParseError("Syntax Error")
         if 'inout' in sigtypes and 'reg' in sigtypes:
             raise ParseError("Syntax Error")
         if 'input' in sigtypes and 'tri' in sigtypes:
@@ -2085,7 +2093,7 @@ class VerilogParser(object):
         p[0] = Function(p[3], p[2], p[5], lineno=p.lineno(1))
         p.set_lineno(0, p.lineno(1))
         p[0].end_lineno = p.lineno(6)
-
+ 
  
     
     def p_funct_params(self,p):
@@ -2101,6 +2109,19 @@ class VerilogParser(object):
                         (p[4],), lineno=p.lineno(1))
         p.set_lineno(0, p.lineno(1))
         p[0].end_lineno = p.lineno(5)
+
+
+    # Portlist
+    def p_function_params_width(self, p):
+        'function : FUNCTION width ID function_params function_calc ENDFUNCTION'
+        p[0] = Function(p[3],
+                        Width(IntConst(p[2].msb, lineno=p.lineno(1)),
+                              IntConst(p[2].lsb, lineno=p.lineno(1)),
+                              lineno=p.lineno(1)),
+                        (p[5],), lineno=p.lineno(1))
+        p.set_lineno(0, p.lineno(2))
+        p[0].end_lineno = p.lineno(6)
+ 
 
  
 

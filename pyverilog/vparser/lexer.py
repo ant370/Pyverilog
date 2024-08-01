@@ -78,8 +78,7 @@ class VerilogLexer(object):
     )
 
     tokens = keywords + operators + (
-        'ID',
-        'TASKNAME',
+        'ID', 
         'AT', 'COMMA', 'COLON', 'SEMICOLON', 'DOT',
         'PLUSCOLON', 'MINUSCOLON',
         'FLOATNUMBER', 'STRING_LITERAL',
