@@ -1331,9 +1331,17 @@ class VerilogParser(object):
         p[0] = Sens(p[2], 'posedge', lineno=p.lineno(1))
         p.set_lineno(0, p.lineno(1))
 
+
+
     def p_negedgesig(self, p):
         'edgesig : NEGEDGE edgesig_base'
         p[0] = Sens(p[2], 'negedge', lineno=p.lineno(1))
+        p.set_lineno(0, p.lineno(1))
+
+    # Added this in as a bit of a hack
+    def p_posedgesig_lebel(self, p):
+        'edgesig : levelsig'
+        p[0] = p[1]
         p.set_lineno(0, p.lineno(1))
 
     def p_edgesig_base_identifier(self, p):
